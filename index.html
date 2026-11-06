@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Your Bazaar</title>
+
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f766e">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-material-ui/material-ui.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-body: #e3ebfa;
+            --bg-card: #ffffff;
+            --text-dark: #111827;
+            --text-gray: #6b7280;
+            --primary: #0f766e;
+            --primary-light: #ccfbf1;
+            --border-color: #e5e7eb;
+            --radius-card: 20px;
+            --radius-sm: 12px;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Outfit', 'Hind Siliguri', sans-serif; background-color: var(--bg-body); color: var(--text-dark); min-height: 100vh; padding: 0 16px 85px 16px; overflow-x: hidden; }
+
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-up { opacity: 0; animation: fadeUp 0.3s ease forwards; }
+
+        /* SPLASH SCREEN */
+        #app-splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: opacity 0.4s ease; }
+        .splash-logo-box { width: 85px; height: 85px; background: var(--primary); border-radius: 22px; display: flex; align-items: center; justify-content: center; padding: 8px; margin-bottom: 14px; }
+        .splash-logo-box img { width: 100%; height: 100%; object-fit: contain; }
+        .splash-app-name { font-size: 22px; font-weight: 800; color: var(--text-dark); }
+        .splash-sub { font-size: 11px; color: var(--text-gray); margin: 4px 0 20px; }
+        .splash-loader { width: 130px; height: 4px; background: #e5e7eb; border-radius: 10px; overflow: hidden; }
+        .splash-loader-fill { height: 100%; width: 0%; background: var(--primary); transition: width 0.15s linear; }
+
+        /* GLOBAL LOADER */
+        #global-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.85); z-index: 9999; display: none; justify-content: center; align-items: center; }
+        #global-loader.active { display: flex; }
+        .spinner { width: 36px; height: 36px; border: 4px solid #e5e7eb; border-top: 4px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* HEADER */
+        .app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; }
+        .brand-section { display: flex; align-items: center; gap: 10px; }
+        .brand-logo { width: 40px; height: 40px; border-radius: 12px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
+        .brand-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .brand-name { font-size: 18px; font-weight: 800; }
+        .wallet-pill-top { background: #fff; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow); cursor: pointer; }
+
+        /* PWA INSTALL BANNER */
+        .pwa-install-banner { background: var(--primary); color: #fff; border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px; display: none; justify-content: space-between; align-items: center; }
+        .pwa-btn { background: #fff; color: var(--primary); font-weight: 700; border: none; padding: 6px 12px; border-radius: 8px; font-size: 11px; cursor: pointer; }
+
+        /* NOTICE */
+        .notice-bar { background: var(--bg-card); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow); overflow: hidden; }
+        .notice-bar .pill { background: var(--primary-light); color: var(--primary); padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; }
+        .notice-bar .marquee { flex: 1; overflow: hidden; white-space: nowrap; }
+        .notice-bar .marquee span { display: inline-block; animation: marqueeScroll 20s linear infinite; font-size: 12px; font-weight: 600; }
+        @keyframes marqueeScroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+
+        /* SEARCH BOX */
+        .search-box-wrap { position: relative; margin-bottom: 12px; }
+        .search-box-wrap i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-gray); }
+        .search-input { width: 100%; background: #fff; border: 1px solid var(--border-color); border-radius: 14px; padding: 10px 14px 10px 38px; font-size: 13px; outline: none; }
+
+        /* SLIDER */
+        .slider-container { width: 100%; aspect-ratio: 2.2/1; border-radius: var(--radius-card); overflow: hidden; position: relative; background: var(--bg-card); box-shadow: var(--shadow); }
+        .slider-wrapper { display: flex; width: 100%; height: 100%; transition: transform 0.6s ease; }
+        .slide { min-width: 100%; height: 100%; }
+        .slide img { width: 100%; height: 100%; object-fit: cover; }
+        .slider-dots { display: flex; justify-content: center; gap: 6px; padding: 8px 0 12px; }
+        .dot { width: 6px; height: 6px; background: #cbd5e1; border-radius: 50%; }
+        .dot.active { width: 16px; background: var(--primary); border-radius: 10px; }
+
+        /* CATEGORIES */
+        .cat-scroll-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+        .cat-scroll-container::-webkit-scrollbar { display: none; }
+        .cat-pill { padding: 6px 14px; background: #fff; border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--text-gray); border: 1px solid var(--border-color); white-space: nowrap; cursor: pointer; }
+        .cat-pill.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        /* APP CARDS */
+        .apps-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .app-card { background: var(--bg-card); border-radius: var(--radius-card); padding: 14px; box-shadow: var(--shadow); display: flex; gap: 12px; align-items: center; position: relative; cursor: pointer; }
+        .app-icon { width: 58px; height: 58px; border-radius: 14px; object-fit: cover; background: #f3f4f6; }
+        .app-info { flex: 1; min-width: 0; }
+        .app-name { font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .app-meta { font-size: 11px; color: var(--text-gray); margin-top: 2px; }
+        .badge-pill { position: absolute; top: 10px; right: 10px; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 10px; }
+        .badge-NEW { background: #dbeafe; color: #1e40af; }
+        .badge-POPULAR, .badge-HOT { background: #f3e8ff; color: #7e22ce; }
+        .badge-UPDATED { background: #d1fae5; color: #065f46; }
+
+        .price-badge { font-weight: 800; font-size: 13px; color: var(--primary); }
+        .btn-download { background: var(--primary); color: #fff; border: none; border-radius: 8px; padding: 5px 12px; font-size: 11px; font-weight: 700; cursor: pointer; }
+        .btn-download.owned { background: #10b981; }
+
+        /* MODAL */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 6000; display: none; align-items: flex-end; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-sheet { background: #fff; width: 100%; max-width: 500px; max-height: 85vh; border-radius: 20px 20px 0 0; padding: 20px 18px 36px; overflow-y: auto; position: relative; animation: slideSheet 0.3s ease; }
+        @keyframes slideSheet { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .sheet-close { position: absolute; top: 14px; right: 14px; width: 28px; height: 28px; border-radius: 50%; background: #f3f4f6; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 13px; font-weight: 700; }
+        .screenshots-row { display: flex; gap: 8px; overflow-x: auto; margin: 14px 0; scrollbar-width: none; }
+        .screenshots-row img { width: 120px; height: 190px; object-fit: cover; border-radius: 12px; flex-shrink: 0; }
+
+        /* FACEBOOK STYLE PROFILE */
+        .profile-container { background: #fff; border-radius: var(--radius-card); overflow: hidden; box-shadow: var(--shadow); margin-bottom: 14px; }
+        .cover-photo-wrap { position: relative; width: 100%; height: 140px; background: #cbd5e1; }
+        .cover-photo-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .cover-upload-btn { position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #fff; border-radius: 20px; padding: 4px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        
+        .avatar-wrap { position: relative; width: 80px; height: 80px; margin: -40px auto 8px; }
+        .avatar-wrap img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid #fff; box-shadow: var(--shadow); background: #fff; }
+        .avatar-upload-btn { position: absolute; bottom: 0; right: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; cursor: pointer; border: 2px solid #fff; }
+
+        /* SECTIONS */
+        .app-section { display: none; }
+        .app-section.active { display: block; animation: fadeUp 0.3s ease forwards; }
+
+        /* WALLET */
+        .wallet-gradient-card { background: var(--primary); border-radius: var(--radius-card); padding: 20px; color: #fff; margin-bottom: 14px; box-shadow: var(--shadow); }
+        .wg-label { font-size: 11px; opacity: 0.9; }
+        .wg-balance { font-size: 30px; font-weight: 800; margin-top: 4px; }
+        .am-box { background: #fff; border-radius: var(--radius-card); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); }
+        .am-input { width: 100%; padding: 12px; background: #f9fafb; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; outline: none; margin-bottom: 12px; }
+        .am-verify-btn { width: 100%; padding: 13px; background: var(--primary); color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; }
+
+        .method-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .method-card { background: #fff; border: 2px solid var(--border-color); border-radius: 12px; padding: 10px 4px; text-align: center; cursor: pointer; }
+        .method-card.active { border-color: var(--primary); background: #f0fdfa; }
+        .method-card img { width: 28px; height: 28px; object-fit: contain; margin: 0 auto 3px; display: block; }
+        .method-card span { font-size: 11px; font-weight: 700; color: var(--text-gray); }
+
+        /* AUTH VIEW */
+        #auth-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-body); z-index: 7000; display: none; flex-direction: column; overflow-y: auto; padding: 40px 16px; }
+        #auth-view.active { display: flex; }
+        .auth-card { background: #fff; border-radius: var(--radius-card); padding: 22px 18px; box-shadow: var(--shadow); max-width: 380px; width: 100%; margin: auto; }
+        .btn-google { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-sm); background: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; margin-bottom: 14px; }
+        .btn-auth { width: 100%; padding: 13px; background: var(--primary); border: none; border-radius: var(--radius-sm); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--text-gray); margin-bottom: 4px; }
+        .form-group input { width: 100%; padding: 11px; background: #f9fafb; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 13px; outline: none; }
+
+        /* BOTTOM NAV */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 4000; background: #fff; border-top: 1px solid var(--border-color); padding: 8px 0 env(safe-area-inset-bottom, 8px) 0; box-shadow: 0 -4px 12px rgba(0,0,0,0.05); }
+        .nav-items { display: flex; justify-content: space-around; max-width: 430px; margin: 0 auto; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #9ca3af; font-size: 11px; font-weight: 600; gap: 3px; background: none; border: none; cursor: pointer; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item.active i { color: var(--primary); }
+        .nav-item i { font-size: 19px; }
+
+        .footer-credit { text-align: center; padding: 20px 0 10px; font-size: 12px; font-weight: 600; opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+    <!-- SPLASH -->
+    <div id="app-splash">
+        <div class="splash-logo-box">
+            <img id="splash-logo" src="https://cdn-icons-png.flaticon.com/512/1144/1144760.png">
+        </div>
+        <div class="splash-app-name" id="splash-app-name">Your Bazaar</div>
+        <div class="splash-sub" id="splash-sub-text">Premium Apps & Source Code</div>
+        <div class="splash-loader"><div class="splash-loader-fill" id="splash-progress"></div></div>
+    </div>
+
+    <!-- LOADER -->
+    <div id="global-loader"><div class="spinner"></div></div>
+
+    <!-- AUTH VIEW -->
+    <div id="auth-view">
+        <div class="auth-card">
+            <div style="text-align:center; margin-bottom:16px;">
+                <h2 style="font-size:20px; font-weight:800;">Welcome to Your Bazaar</h2>
+                <p style="font-size:12px; color:var(--text-gray);">Sign in to download and unlock apps</p>
+            </div>
+
+            <button class="btn-google" onclick="window.googleLogin()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:16px;">
+                Continue with Google
+            </button>
+
+            <div style="text-align:center; color:var(--text-gray); margin-bottom:12px; font-size:11px;">── OR WITH EMAIL ──</div>
+
+            <form id="emailAuthForm" onsubmit="window.handleEmailAuth(); return false;">
+                <div class="form-group" id="group-name" style="display:none;"><label>Full Name</label><input type="text" id="auth-name"></div>
+                <div class="form-group" id="group-phone" style="display:none;"><label>Phone Number</label><input type="number" id="auth-phone"></div>
+                <div class="form-group"><label>Email Address</label><input type="email" id="auth-email" required></div>
+                <div class="form-group"><label>Password</label><input type="password" id="auth-pass" required></div>
+                <button type="submit" class="btn-auth" id="btn-submit-auth">Sign In</button>
+            </form>
+
+            <div style="display:flex; justify-content:space-between; margin-top:14px; font-size:12px;">
+                <span id="auth-toggle-link" style="color:var(--primary); font-weight:700; cursor:pointer;" onclick="window.toggleAuthView()">Create Account</span>
+                <span style="color:var(--text-gray); cursor:pointer;" onclick="window.forgotPasswordModal()">Forgot Password?</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main-content">
+        <header class="app-header">
+            <div class="brand-section">
+                <div class="brand-logo"><img id="header-logo" src="https://cdn-icons-png.flaticon.com/512/1144/1144760.png"></div>
+                <span class="brand-name" id="header-title">Your Bazaar</span>
+            </div>
+            <div class="wallet-pill-top" onclick="window.nav('wallet')">
+                <i class="fa-solid fa-coins"></i> ৳ <span id="top-balance-val">0.00</span>
+            </div>
+        </header>
+
+        <!-- PWA BANNER -->
+        <div id="pwa-install-banner" class="pwa-install-banner">
+            <div><b>Install Your Bazaar App</b><div style="font-size:10px;">Add to mobile home screen</div></div>
+            <button class="pwa-btn" id="btn-install-pwa">Install</button>
+        </div>
+
+        <!-- HOME TAB -->
+        <section id="tab-home" class="app-section active">
+            <div class="notice-bar">
+                <div class="pill"><i class="fa-solid fa-bullhorn"></i> Notice</div>
+                <div class="marquee"><span id="dynamic-notice">Welcome to Your Bazaar! Explore our store.</span></div>
+            </div>
+
+            <div class="search-box-wrap">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="store-search-input" class="search-input" placeholder="Search apps, games, code..." onkeyup="window.filterStoreApps()">
+            </div>
+
+            <div class="slider-container">
+                <div id="banner-slider-wrapper" class="slider-wrapper"></div>
+            </div>
+            <div id="slider-dots" class="slider-dots"></div>
+
+            <div class="cat-scroll-container" id="category-tabs"></div>
+            <div class="apps-grid" id="apps-container"></div>
+            <div class="footer-credit" id="store-footer-text">Your Bazaar</div>
+        </section>
+
+        <!-- MY APPS TAB -->
+        <section id="tab-myapps" class="app-section">
+            <h3 style="font-size:16px; font-weight:800; margin:12px 0;">My Downloaded Library</h3>
+            <div class="apps-grid" id="myapps-container"></div>
+        </section>
+
+        <!-- WALLET TAB -->
+        <section id="tab-wallet" class="app-section">
+            <div class="wallet-gradient-card">
+                <div class="wg-label">Available Store Balance</div>
+                <div class="wg-balance">৳ <span id="wallet-balance-display">0.00</span></div>
+            </div>
+
+            <div class="method-grid">
+                <div class="method-card active" id="tab-bkash" onclick="window.switchPayTab('bkash')">
+                    <img src="https://i.ibb.co.com/qF1xD5xj/image-search-1769091253468.png"><span>bKash</span>
+                </div>
+                <div class="method-card" id="tab-rocket" onclick="window.switchPayTab('rocket')">
+                    <img src="https://i.ibb.co.com/MDt4TzDf/image-search-1769091463880.png"><span>Rocket</span>
+                </div>
+                <div class="method-card" id="tab-nagad" onclick="window.switchPayTab('nagad')">
+                    <img src="https://i.ibb.co.com/4gmdTj1f/image-search-1769091285966.png"><span>Nagad</span>
+                </div>
+            </div>
+
+            <div class="am-box">
+                <div style="font-weight:800; font-size:14px; margin-bottom:6px;" id="pay-box-title">bKash Send Money</div>
+                <div style="font-size:12px; margin-bottom:10px;">Send Money to: <b id="pay-num-display">Loading...</b> <button class="pwa-btn" style="background:#f3f4f6; color:#000;" onclick="window.copyPayNum()">Copy</button></div>
+                <input type="text" id="trx-input" class="am-input" placeholder="Enter Transaction ID (TrxID)">
+                <button class="am-verify-btn" onclick="window.verifyAutoPay()">VERIFY & ADD BALANCE</button>
+            </div>
+        </section>
+
+        <!-- PROFILE TAB (FACEBOOK STYLE) -->
+        <section id="tab-profile" class="app-section">
+            <div class="profile-container">
+                <div class="cover-photo-wrap">
+                    <img id="user-cover-img" src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop">
+                    <label class="cover-upload-btn" for="cover-file-input">
+                        <i class="fas fa-camera"></i> Edit Cover
+                    </label>
+                    <input type="file" id="cover-file-input" accept="image/*" style="display:none;" onchange="window.uploadUserCover(this)">
+                </div>
+
+                <div class="avatar-wrap">
+                    <img id="user-avatar-img" src="https://cdn-icons-png.flaticon.com/512/149/149071.png">
+                    <label class="avatar-upload-btn" for="avatar-file-input">
+                        <i class="fas fa-camera"></i>
+                    </label>
+                    <input type="file" id="avatar-file-input" accept="image/*" style="display:none;" onchange="window.uploadUserAvatar(this)">
+                </div>
+
+                <div style="text-align:center; padding-bottom:14px;">
+                    <h3 id="user-name" style="font-size:17px; font-weight:800;">User</h3>
+                    <p id="user-email" style="font-size:12px; color:var(--text-gray);"></p>
+                </div>
+            </div>
+
+            <div class="am-box" style="padding:10px 14px;">
+                <button class="btn-google" style="margin-bottom:8px; border:none; justify-content:flex-start;" onclick="window.openSupport()"><i class="fa-solid fa-headset"></i> Support Channel</button>
+                <button class="btn-google" style="margin-bottom:8px; border:none; justify-content:flex-start;" onclick="window.openDevLink()"><i class="fa-solid fa-code"></i> Developer Profile</button>
+                <button class="btn-google" style="color:var(--accent-red); border:none; justify-content:flex-start;" onclick="window.logout()"><i class="fa-solid fa-power-off"></i> Logout</button>
+            </div>
+        </section>
+
+        <!-- BOTTOM NAV -->
+        <nav class="bottom-nav">
+            <div class="nav-items">
+                <button class="nav-item active" onclick="window.nav('home')" id="n-home"><i class="fa-solid fa-store"></i><span>Bazaar</span></button>
+                <button class="nav-item" onclick="window.nav('myapps')" id="n-myapps"><i class="fa-solid fa-download"></i><span>My Apps</span></button>
+                <button class="nav-item" onclick="window.nav('wallet')" id="n-wallet"><i class="fa-solid fa-wallet"></i><span>Add Money</span></button>
+                <button class="nav-item" onclick="window.nav('profile')" id="n-profile"><i class="fa-solid fa-user"></i><span>Profile</span></button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- APP DETAILS SHEET MODAL -->
+    <div id="app-sheet-modal" class="modal">
+        <div class="modal-sheet">
+            <div class="sheet-close" onclick="document.getElementById('app-sheet-modal').classList.remove('active')">✕</div>
+            <div style="display:flex; gap:12px; align-items:center;">
+                <img id="sheet-icon" src="" style="width:60px; height:60px; border-radius:16px; object-fit:cover;">
+                <div>
+                    <h3 id="sheet-title" style="font-size:16px; font-weight:800; color:var(--text-dark);"></h3>
+                    <div id="sheet-dev" style="font-size:11px; color:var(--primary); font-weight:700;"></div>
+                    <div id="sheet-meta" style="font-size:10px; color:var(--text-gray); margin-top:2px;"></div>
+                </div>
+            </div>
+
+            <div class="screenshots-row" id="sheet-screenshots"></div>
+
+            <div style="margin:12px 0;">
+                <h4 style="font-size:13px; font-weight:800; margin-bottom:4px;">About this product</h4>
+                <div id="sheet-desc" style="font-size:12px; color:var(--text-gray); line-height:1.5; white-space:pre-wrap;"></div>
+            </div>
+
+            <div style="margin-top:14px;" id="sheet-action-wrap"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, push, update, get, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBpHGskdHQuZMnQVSjvelOnoop7-Yq8las",
+            authDomain: "ami-store-a27d0.firebaseapp.com",
+            databaseURL: "https://ami-store-a27d0-default-rtdb.firebaseio.com",
+            projectId: "ami-store-a27d0",
+            storageBucket: "ami-store-a27d0.firebasestorage.app",
+            messagingSenderId: "254023905533",
+            appId: "1:254023905533:web:831fe198c259338ca48e94"
+        };
+
+        const GITHUB_TOKEN = "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";
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const auth = getAuth(app);
+
+        let currentUser = null;
+        let userBalance = 0;
+        let allProducts = [];
+        let myPurchases = [];
+        let categories = {};
+        let activeCatFilter = 'ALL';
+        let currentPayMethod = 'bkash';
+        let appSettings = {};
+        let githubRepo = "";
+
+        window.onload = () => {
+            initApp();
+            let progress = 0;
+            const pb = document.getElementById('splash-progress');
+            const it = setInterval(() => {
+                progress += 10;
+                pb.style.width = progress + '%';
+                if(progress >= 100) {
+                    clearInterval(it);
+                    setTimeout(() => {
+                        const s = document.getElementById('app-splash');
+                        s.style.opacity = '0';
+                        setTimeout(() => s.style.display = 'none', 350);
+                    }, 200);
+                }
+            }, 30);
+        };
+
+        // PWA Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const b = document.getElementById('pwa-install-banner');
+            b.style.display = 'flex';
+            document.getElementById('btn-install-pwa').onclick = () => {
+                b.style.display = 'none';
+                deferredPrompt.prompt();
+            };
+        });
+
+        // Request Push
+        if ("Notification" in window && Notification.permission !== "granted") {
+            Notification.requestPermission();
+        }
+
+        // --- GITHUB FILE UPLOAD HELPER ---
+        async function uploadFileToGitHub(file, folder = 'user_profiles') {
+            if(!githubRepo) {
+                const snap = await get(ref(db, 'app_settings/github_repo'));
+                githubRepo = snap.val();
+                if(!githubRepo) throw new Error("Admin has not configured GitHub repository yet!");
+            }
+
+            const cleanName = Date.now() + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const path = `${folder}/${cleanName}`;
+            const base64 = await fileToBase64(file);
+
+            const res = await fetch(`https://api.github.com/repos/${githubRepo}/contents/${path}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `token ${GITHUB_TOKEN}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: `Upload ${cleanName}`, content: base64 })
+            });
+
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.message || 'Upload failed');
+            return `https://cdn.jsdelivr.net/gh/${githubRepo}@main/${path}`;
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = e => reject(e);
+            });
+        }
+
+        function initApp() {
+            onValue(ref(db, 'app_settings'), s => {
+                const d = s.val() || {};
+                appSettings = d;
+                githubRepo = d.github_repo || "";
+                const name = d.app_name || 'Your Bazaar';
+                document.getElementById('header-title').innerText = name;
+                document.getElementById('splash-app-name').innerText = name;
+                if(d.sub_title) document.getElementById('splash-sub-text').innerText = d.sub_title;
+                if(d.app_logo) {
+                    document.getElementById('header-logo').src = d.app_logo;
+                    document.getElementById('splash-logo').src = d.app_logo;
+                }
+                if(d.notice) document.getElementById('dynamic-notice').innerText = d.notice;
+                if(d.footer_text) document.getElementById('store-footer-text').innerText = d.footer_text;
+
+                updatePayNumUI();
+
+                if(d.banners) {
+                    const w = document.getElementById('banner-slider-wrapper');
+                    const dots = document.getElementById('slider-dots');
+                    w.innerHTML = ""; dots.innerHTML = "";
+                    const b = Object.values(d.banners);
+                    b.forEach((item, i) => {
+                        w.innerHTML += `<div class="slide"><img src="${item.img}"></div>`;
+                        dots.innerHTML += `<div class="dot ${i===0?'active':''}"></div>`;
+                    });
+                    initSlider();
+                }
+            });
+
+            onValue(ref(db, 'categories'), s => {
+                categories = s.val() || {};
+                renderCategoryPills();
+            });
+
+            onValue(ref(db, 'products'), s => {
+                const d = s.val();
+                allProducts = d ? Object.entries(d).map(([k,v]) => ({id:k, ...v})) : [];
+                renderStoreApps();
+            });
+
+            // Notification Listener
+            onValue(ref(db, 'notifications'), s => {
+                const d = s.val();
+                if(d) {
+                    const items = Object.values(d);
+                    const latest = items[items.length - 1];
+                    if(latest && (Date.now() - latest.timestamp < 15000)) {
+                        if (Notification.permission === "granted") {
+                            new Notification(latest.title, { body: latest.body, icon: appSettings.app_logo });
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderCategoryPills() {
+            const box = document.getElementById('category-tabs');
+            box.innerHTML = `<div class="cat-pill ${activeCatFilter==='ALL'?'active':''}" onclick="window.filterCat('ALL')">All Products</div>`;
+            Object.entries(categories).forEach(([id, c]) => {
+                box.innerHTML += `<div class="cat-pill ${activeCatFilter===id?'active':''}" onclick="window.filterCat('${id}')">${c.name}</div>`;
+            });
+        }
+
+        window.filterCat = (catId) => {
+            activeCatFilter = catId;
+            renderCategoryPills();
+            renderStoreApps();
+        };
+
+        window.filterStoreApps = () => {
+            const q = document.getElementById('store-search-input').value.toLowerCase();
+            renderStoreApps(q);
+        };
+
+        function renderStoreApps(query = "") {
+            const box = document.getElementById('apps-container');
+            box.innerHTML = "";
+            let list = allProducts;
+            if(activeCatFilter !== 'ALL') list = list.filter(p => p.categoryId === activeCatFilter);
+            if(query) list = list.filter(p => p.title.toLowerCase().includes(query) || (p.developer && p.developer.toLowerCase().includes(query)));
+
+            if(list.length === 0) return box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-gray);'>No items found</div>";
+
+            list.forEach(p => {
+                const isOwned = myPurchases.includes(p.id) || p.price == 0;
+                const priceLbl = p.price == 0 ? 'FREE' : `৳${p.price}`;
+                const btnText = isOwned ? 'Download' : `Buy (${priceLbl})`;
+                const btnClass = isOwned ? 'btn-download owned' : 'btn-download';
+
+                box.innerHTML += `
+                <div class="app-card" onclick="window.openAppSheet('${p.id}')">
+                    <span class="badge-pill badge-${p.badge || 'NEW'}">${p.badge || 'NEW'}</span>
+                    <img src="${p.icon}" class="app-icon">
+                    <div class="app-info">
+                        <div class="app-name">${p.title}</div>
+                        <div class="app-meta">By ${p.developer || 'Official'} · ${p.size || 'N/A'}</div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+                            <span class="price-badge">${priceLbl}</span>
+                            <button class="${btnClass}" onclick="event.stopPropagation(); window.handleAppAction('${p.id}')">${btnText}</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function renderMyApps() {
+            const box = document.getElementById('myapps-container');
+            box.innerHTML = "";
+            const owned = allProducts.filter(p => myPurchases.includes(p.id) || p.price == 0);
+            if(owned.length === 0) return box.innerHTML = "<div style='text-align:center; padding:40px; color:var(--text-gray);'>No downloads yet</div>";
+
+            owned.forEach(p => {
+                box.innerHTML += `
+                <div class="app-card">
+                    <img src="${p.icon}" class="app-icon">
+                    <div class="app-info">
+                        <div class="app-name">${p.title}</div>
+                        <div class="app-meta">v${p.version || '1.0'} · ${p.size || 'N/A'}</div>
+                        <div style="margin-top:6px;">
+                            <a href="${p.downloadUrl}" target="_blank" class="btn-download owned" style="text-decoration:none;"><i class="fas fa-download"></i> Download File</a>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+
+        window.openAppSheet = (id) => {
+            const p = allProducts.find(x => x.id === id);
+            if(!p) return;
+
+            document.getElementById('sheet-icon').src = p.icon;
+            document.getElementById('sheet-title').innerText = p.title;
+            document.getElementById('sheet-dev').innerText = `By ${p.developer || 'Official'}`;
+            document.getElementById('sheet-meta').innerText = `Version: ${p.version || '1.0'} · Size: ${p.size || 'N/A'} · Downloads: ${p.downloads || 0}`;
+            document.getElementById('sheet-desc').innerText = p.desc || 'No description available.';
+
+            const screensBox = document.getElementById('sheet-screenshots');
+            screensBox.innerHTML = "";
+            if(Array.isArray(p.screenshots) && p.screenshots.length > 0) {
+                p.screenshots.forEach(src => {
+                    screensBox.innerHTML += `<img src="${src}">`;
+                });
+                screensBox.style.display = 'flex';
+            } else {
+                screensBox.style.display = 'none';
+            }
+
+            const isOwned = myPurchases.includes(p.id) || p.price == 0;
+            const priceLbl = p.price == 0 ? 'FREE DOWNLOAD' : `BUY FOR ৳${p.price}`;
+
+            document.getElementById('sheet-action-wrap').innerHTML = `
+                <button class="am-verify-btn" onclick="window.handleAppAction('${p.id}')">
+                    <i class="fas ${isOwned ? 'fa-download' : 'fa-shopping-cart'}"></i> ${isOwned ? 'DOWNLOAD NOW' : priceLbl}
+                </button>
+            `;
+
+            document.getElementById('app-sheet-modal').classList.add('active');
+        };
+
+        window.handleAppAction = async (appId) => {
+            const p = allProducts.find(x => x.id === appId);
+            if(!p) return;
+
+            if(p.price == 0 || myPurchases.includes(p.id)) {
+                await update(ref(db, `products/${appId}`), { downloads: (p.downloads || 0) + 1 });
+                window.open(p.downloadUrl, '_blank');
+                return;
+            }
+
+            if(userBalance < p.price) {
+                return Swal.fire({
+                    icon: 'warning',
+                    title: 'Insufficient Balance',
+                    text: `You need ৳${p.price}. Please add money.`,
+                    confirmButtonText: 'Add Money'
+                }).then(() => {
+                    document.getElementById('app-sheet-modal').classList.remove('active');
+                    window.nav('wallet');
+                });
+            }
+
+            Swal.fire({
+                title: 'Confirm Purchase',
+                text: `Deduct ৳${p.price} from balance and unlock ${p.title}?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Buy Now'
+            }).then(async (res) => {
+                if(res.isConfirmed) {
+                    toggleLoader(true);
+                    try {
+                        const userRef = ref(db, `users/${currentUser.uid}`);
+                        const tx = await runTransaction(userRef, data => {
+                            if(!data) return data;
+                            if((data.deposit || 0) < p.price) return;
+                            data.deposit = (data.deposit || 0) - p.price;
+                            return data;
+                        });
+
+                        if(tx.committed) {
+                            await set(ref(db, `purchases/${currentUser.uid}/${appId}`), {
+                                appId: appId,
+                                title: p.title,
+                                price: p.price,
+                                time: new Date().toLocaleString()
+                            });
+                            await update(ref(db, `products/${appId}`), { downloads: (p.downloads || 0) + 1 });
+                            toggleLoader(false);
+                            Swal.fire('Unlocked!', 'Download started', 'success');
+                            window.open(p.downloadUrl, '_blank');
+                        } else {
+                            toggleLoader(false);
+                            Swal.fire('Error', 'Transaction failed', 'error');
+                        }
+                    } catch(e) {
+                        toggleLoader(false);
+                        Swal.fire('Error', e.message, 'error');
+                    }
+                }
+            });
+        };
+
+        // --- AUTH & BLOCK CHECK ---
+        onAuthStateChanged(auth, u => {
+            if(u) {
+                currentUser = u;
+                document.getElementById('auth-view').classList.remove('active');
+                document.getElementById('user-name').innerText = u.displayName || 'User';
+                document.getElementById('user-email').innerText = u.email;
+
+                onValue(ref(db, `users/${u.uid}`), s => {
+                    const d = s.val() || {};
+                    // Block check
+                    if(d.status === 'blocked') {
+                        signOut(auth);
+                        Swal.fire('Account Suspended', 'Your account has been blocked by Admin.', 'error');
+                        return;
+                    }
+                    userBalance = d.deposit || 0;
+                    document.getElementById('wallet-balance-display').innerText = userBalance.toFixed(2);
+                    document.getElementById('top-balance-val').innerText = userBalance.toFixed(2);
+
+                    if(d.avatar) document.getElementById('user-avatar-img').src = d.avatar;
+                    if(d.cover) document.getElementById('user-cover-img').src = d.cover;
+                });
+
+                onValue(ref(db, `purchases/${u.uid}`), s => {
+                    const d = s.val() || {};
+                    myPurchases = Object.keys(d);
+                    renderStoreApps();
+                    renderMyApps();
+                });
+            } else {
+                currentUser = null;
+                document.getElementById('auth-view').classList.add('active');
+            }
+        });
+
+        // --- FACEBOOK PROFILE UPLOADS VIA GITHUB ---
+        window.uploadUserAvatar = async (input) => {
+            const file = input.files[0];
+            if(!file || !currentUser) return;
+            toggleLoader(true);
+            try {
+                const url = await uploadFileToGitHub(file, 'avatars');
+                await update(ref(db, `users/${currentUser.uid}`), { avatar: url });
+                document.getElementById('user-avatar-img').src = url;
+                toggleLoader(false);
+                Swal.fire('Success', 'Profile photo updated!', 'success');
+            } catch(e) {
+                toggleLoader(false);
+                Swal.fire('Error', e.message, 'error');
+            }
+        };
+
+        window.uploadUserCover = async (input) => {
+            const file = input.files[0];
+            if(!file || !currentUser) return;
+            toggleLoader(true);
+            try {
+                const url = await uploadFileToGitHub(file, 'covers');
+                await update(ref(db, `users/${currentUser.uid}`), { cover: url });
+                document.getElementById('user-cover-img').src = url;
+                toggleLoader(false);
+                Swal.fire('Success', 'Cover photo updated!', 'success');
+            } catch(e) {
+                toggleLoader(false);
+                Swal.fire('Error', e.message, 'error');
+            }
+        };
+
+        window.googleLogin = () => {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider).then(res => {
+                const u = res.user;
+                update(ref(db, `users/${u.uid}`), { username: u.displayName, email: u.email });
+            }).catch(e => Swal.fire('Error', e.message, 'error'));
+        };
+
+        let isRegister = false;
+        window.toggleAuthView = () => {
+            isRegister = !isRegister;
+            document.getElementById('group-name').style.display = isRegister ? 'block' : 'none';
+            document.getElementById('group-phone').style.display = isRegister ? 'block' : 'none';
+            document.getElementById('btn-submit-auth').innerText = isRegister ? 'Sign Up' : 'Sign In';
+            document.getElementById('auth-toggle-link').innerText = isRegister ? 'Have an account? Login' : 'Create Account';
+        };
+
+        window.handleEmailAuth = () => {
+            const e = document.getElementById('auth-email').value.trim();
+            const p = document.getElementById('auth-pass').value.trim();
+            const n = document.getElementById('auth-name').value.trim();
+            const ph = document.getElementById('auth-phone').value.trim();
+            toggleLoader(true);
+
+            if(isRegister) {
+                createUserWithEmailAndPassword(auth, e, p).then(res => {
+                    set(ref(db, `users/${res.user.uid}`), { username: n || 'User', email: e, phone: ph || '', deposit: 0, status: 'active' });
+                    toggleLoader(false);
+                }).catch(err => { toggleLoader(false); Swal.fire('Error', err.message, 'error'); });
+            } else {
+                signInWithEmailAndPassword(auth, e, p).then(() => toggleLoader(false))
+                .catch(err => { toggleLoader(false); Swal.fire('Error', err.message, 'error'); });
+            }
+        };
+
+        window.forgotPasswordModal = async () => {
+            const { value: email } = await Swal.fire({
+                title: 'Password Reset',
+                text: 'Enter your email to request OTP from Admin:',
+                input: 'email',
+                showCancelButton: true
+            });
+
+            if(email) {
+                const key = email.replace(/[.#$[\]]/g, "_");
+                await set(ref(db, `password_resets/${key}`), { email: email, status: 'pending' });
+                Swal.fire({
+                    title: 'Request Sent',
+                    text: 'Ask Admin for your OTP, then click below to reset:',
+                    confirmButtonText: 'I Have OTP'
+                }).then(async (r) => {
+                    if(r.isConfirmed) {
+                        const { value: otp } = await Swal.fire({ title: 'Enter OTP', input: 'number' });
+                        const snap = await get(ref(db, `password_resets/${key}`));
+                        const reqData = snap.val();
+
+                        if(reqData && reqData.otp === otp) {
+                            const { value: newPass } = await Swal.fire({ title: 'New Password', input: 'password' });
+                            if(newPass) Swal.fire('Success', 'Password reset successfully! Please login.', 'success');
+                        } else {
+                            Swal.fire('Error', 'Invalid or unapproved OTP', 'error');
+                        }
+                    }
+                });
+            }
+        };
+
+        window.logout = () => signOut(auth);
+
+        // --- WALLET AUTO PAYMENT ---
+        window.switchPayTab = (t) => {
+            currentPayMethod = t;
+            document.querySelectorAll('.method-card').forEach(e => e.classList.remove('active'));
+            document.getElementById(`tab-${t}`).classList.add('active');
+            updatePayNumUI();
+        };
+
+        function updatePayNumUI() {
+            const num = appSettings[`${currentPayMethod}_number`] || 'Not set';
+            document.getElementById('pay-num-display').innerText = num;
+            document.getElementById('pay-box-title').innerText = `${currentPayMethod.toUpperCase()} Send Money`;
+        }
+
+        window.copyPayNum = () => {
+            const num = document.getElementById('pay-num-display').innerText;
+            navigator.clipboard.writeText(num).then(() => Swal.fire('Copied', num, 'success'));
+        };
+
+        window.verifyAutoPay = async () => {
+            if(!currentUser) return;
+            const trxId = document.getElementById('trx-input').value.trim().toUpperCase();
+            if(!trxId) return Swal.fire('Error', 'Enter Transaction ID', 'warning');
+
+            toggleLoader(true);
+            try {
+                const usedSnap = await get(ref(db, `Auto Pay/${trxId}`));
+                if(usedSnap.exists()) { toggleLoader(false); return Swal.fire('Error', 'TrxID already used', 'error'); }
+
+                const smsRef = ref(db, `sms_inbox/${trxId}`);
+                const smsSnap = await get(smsRef);
+                if(!smsSnap.exists()) { toggleLoader(false); return Swal.fire('Not found', 'Payment SMS not received yet. Wait a minute and try again.', 'error'); }
+
+                const sms = smsSnap.val();
+                if(sms.used) { toggleLoader(false); return Swal.fire('Error', 'TrxID already used', 'error'); }
+
+                const claim = await runTransaction(smsRef, (d) => {
+                    if(!d || d.used) return;
+                    d.used = true; d.usedBy = currentUser.uid;
+                    return d;
+                });
+
+                if(claim.committed) {
+                    const amount = parseFloat(sms.amount) || 0;
+                    await runTransaction(ref(db, `users/${currentUser.uid}`), (data) => {
+                        if(data) { data.deposit = (data.deposit || 0) + amount; return data; }
+                    });
+                    await set(ref(db, `Auto Pay/${trxId}`), { amount, user: currentUser.uid, time: serverTimestamp() });
+                    document.getElementById('trx-input').value = "";
+                    toggleLoader(false);
+                    Swal.fire('Success', `৳${amount} Added to your store balance!`, 'success');
+                } else {
+                    toggleLoader(false);
+                    Swal.fire('Error', 'TrxID already claimed', 'error');
+                }
+            } catch(e) {
+                toggleLoader(false);
+                Swal.fire('Error', e.message, 'error');
+            }
+        };
+
+        // NAVIGATION
+        window.nav = (tab) => {
+            document.querySelectorAll('.app-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`n-${tab}`).classList.add('active');
+            if(tab === 'myapps') renderMyApps();
+        };
+
+        window.openSupport = () => {
+            if(appSettings.support_link) window.open(appSettings.support_link, '_blank');
+            else Swal.fire('Support', 'Support link not set yet.', 'info');
+        };
+
+        window.openDevLink = () => {
+            if(appSettings.dev_link) window.open(appSettings.dev_link, '_blank');
+            else Swal.fire('Developer', appSettings.footer_text || 'Developer Profile', 'info');
+        };
+
+        function toggleLoader(s) {
+            const l = document.getElementById('global-loader');
+            if(s) l.classList.add('active'); else l.classList.remove('active');
+        }
+
+        let slideIdx = 0;
+        function initSlider() {
+            const slides = document.querySelectorAll('.slide');
+            const dots = document.querySelectorAll('.dot');
+            if(slides.length === 0) return;
+            setInterval(() => {
+                slideIdx = (slideIdx + 1) % slides.length;
+                document.getElementById('banner-slider-wrapper').style.transform = `translateX(-${slideIdx * 100}%)`;
+                dots.forEach(d => d.classList.remove('active'));
+                if(dots[slideIdx]) dots[slideIdx].classList.add('active');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
